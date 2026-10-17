@@ -1,1 +1,5 @@
-Initial scaffold upgraded: added persistence (SharedPreferences) and onboarding. Updated pubspec and README.
+Short changelog
+
+- Added animated badge UI (local) and progress indicator
+- Moved persistence to use SharedPreferences (already present)
+- Added onboarding screen
