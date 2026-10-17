@@ -1,0 +1,24 @@
+name: micro_habit_gamify
+
+description: A minimal Flutter micro-habit gamified starter app (EN + TR)
+
+publish_to: 'none'
+
+version: 0.1.1+1
+
+environment:
+  sdk: '>=2.18.0 <3.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.2
+  shared_preferences: ^2.1.1
+  gamification_ui: ^0.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
