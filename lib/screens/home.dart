@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:hive/hive.dart';
 import '../models/task.dart';
 import 'onboarding.dart';
 import '../widgets/badge_widget.dart';
@@ -20,6 +21,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   bool _loaded = false;
 
   late AnimationController _pulseController;
+  late Box _box;
 
   Map<String, Map<String, String>> _strings = {
     'en': {
@@ -60,14 +62,33 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         points: (i % 3) + 1,
       );
     });
-    _loadState();
-    _checkFirstRun();
+    _init();
   }
 
-  @override
-  void dispose() {
-    _pulseController.dispose();
-    super.dispose();
+  Future<void> _init() async {
+    _box = Hive.box('appBox');
+    await _migrateIfNeeded();
+    await _loadState();
+    await _checkFirstRun();
+  }
+
+  Future<void> _migrateIfNeeded() async {
+    final prefs = await SharedPreferences.getInstance();
+    final migrated = prefs.getBool('migrated_to_hive') ?? false;
+    if (!migrated) {
+      // migrate points and badges and task completion
+      final migratedPoints = prefs.getInt('points') ?? 0;
+      final migratedBadges = prefs.getStringList('badges') ?? [];
+      await _box.put('points', migratedPoints);
+      await _box.put('badges', migratedBadges);
+      for (var t in tasks) {
+        final key = 'task_${t.id}_completed';
+        final completed = prefs.getBool(key) ?? false;
+        t.completed = completed;
+        await _box.put('task_${t.id}_completed', completed);
+      }
+      await prefs.setBool('migrated_to_hive', true);
+    }
   }
 
   Future<void> _checkFirstRun() async {
@@ -85,24 +106,22 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   }
 
   Future<void> _loadState() async {
-    final prefs = await SharedPreferences.getInstance();
     setState(() {
-      points = prefs.getInt('points') ?? 0;
-      final badgeList = prefs.getStringList('badges') ?? [];
+      points = _box.get('points', defaultValue: 0) as int;
+      final badgeList = (_box.get('badges', defaultValue: []) as List).cast<String>();
       badges = badgeList.toSet();
       for (var i = 0; i < tasks.length; i++) {
-        tasks[i].completed = prefs.getBool('task_${tasks[i].id}_completed') ?? false;
+        tasks[i].completed = _box.get('task_${tasks[i].id}_completed', defaultValue: false) as bool;
       }
       _loaded = true;
     });
   }
 
   Future<void> _saveState() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('points', points);
-    await prefs.setStringList('badges', badges.toList());
+    await _box.put('points', points);
+    await _box.put('badges', badges.toList());
     for (var t in tasks) {
-      await prefs.setBool('task_${t.id}_completed', t.completed);
+      await _box.put('task_${t.id}_completed', t.completed);
     }
   }
 
