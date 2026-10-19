@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import '../models/task.dart';
-import 'onboarding.dart';
-import '../widgets/badge_widget.dart';
+import 'core/app_strings.dart';
+import 'models/task.dart';
+import 'screens/onboarding.dart';
+import 'widgets/badge_widget.dart';
 
 class HomeScreen extends StatefulWidget {
   final Function(Locale) onLocaleChange;
@@ -23,35 +24,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   late AnimationController _pulseController;
   late Box _box;
 
-  Map<String, Map<String, String>> _strings = {
-    'en': {
-      'title': 'Micro Habit — Demo',
-      'points': 'Points',
-      'badges': 'Badges',
-      'complete': 'Complete',
-      'reset': 'Reset',
-      'locale': 'Language',
-      'onboarding_title': 'Welcome to Micro Habit',
-      'next_badge': 'Next badge in',
-      'new_badge': 'New badge unlocked!',
-      'nice_work': 'Nice work — you earned a new badge.'
-    },
-    'tr': {
-      'title': 'Mikro Alışkanlık — Demo',
-      'points': 'Puan',
-      'badges': 'Rozetler',
-      'complete': 'Tamamla',
-      'reset': 'Sıfırla',
-      'locale': 'Dil',
-      'onboarding_title': 'Mikro Alışkanlığa Hoşgeldiniz',
-      'next_badge': 'Sonraki rozet için',
-      'new_badge': 'Yeni rozet açıldı!',
-      'nice_work': 'Harika iş — yeni bir rozet kazandın.'
-    }
-  };
-
   String t(String key) {
-    return _strings[widget.locale.languageCode]?[key] ?? key;
+    return AppStrings.strings[widget.locale.languageCode]?[key] ?? AppStrings.strings['en']![key]!;
   }
 
   @override
@@ -61,7 +35,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     tasks = List.generate(10, (i) {
       return Task(
         id: 't$i',
-        title: 'Task ${i + 1}',
+        title: t('task_${i + 1}'),
         description: 'Complete this micro-task ${i + 1}',
         points: (i % 3) + 1,
       );
@@ -180,6 +154,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             itemBuilder: (ctx) => [
               PopupMenuItem(value: Locale('en'), child: Text('English')),
               PopupMenuItem(value: Locale('tr'), child: Text('Türkçe')),
+              PopupMenuItem(value: Locale('es'), child: Text('Español')),
+              PopupMenuItem(value: Locale('fr'), child: Text('Français')),
             ],
             icon: Icon(Icons.language),
           )
