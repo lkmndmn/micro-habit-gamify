@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 class OnboardingScreen extends StatelessWidget {
   final VoidCallback onDone;
+
   OnboardingScreen({required this.onDone});
 
   @override
@@ -24,9 +25,7 @@ class OnboardingScreen extends StatelessWidget {
               child: SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () {
-                    onDone();
-                  },
+                  onPressed: onDone,
                   child: Text('Get started'),
                 ),
               ),

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:hive/hive.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import '../models/task.dart';
 import 'onboarding.dart';
 import '../widgets/badge_widget.dart';
@@ -8,6 +7,7 @@ import '../widgets/badge_widget.dart';
 class HomeScreen extends StatefulWidget {
   final Function(Locale) onLocaleChange;
   final Locale locale;
+
   HomeScreen({required this.onLocaleChange, required this.locale});
 
   @override
@@ -32,7 +32,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       'reset': 'Reset',
       'locale': 'Language',
       'onboarding_title': 'Welcome to Micro Habit',
-      'next_badge': 'Next badge in'
+      'next_badge': 'Next badge in',
+      'new_badge': 'New badge unlocked!',
+      'nice_work': 'Nice work — you earned a new badge.'
     },
     'tr': {
       'title': 'Mikro Alışkanlık — Demo',
@@ -42,7 +44,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       'reset': 'Sıfırla',
       'locale': 'Dil',
       'onboarding_title': 'Mikro Alışkanlığa Hoşgeldiniz',
-      'next_badge': 'Sonraki rozet için'
+      'next_badge': 'Sonraki rozet için',
+      'new_badge': 'Yeni rozet açıldı!',
+      'nice_work': 'Harika iş — yeni bir rozet kazandın.'
     }
   };
 
@@ -62,43 +66,23 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         points: (i % 3) + 1,
       );
     });
-    _init();
+    _loadState();
+    _checkFirstRun();
   }
 
-  Future<void> _init() async {
-    _box = Hive.box('appBox');
-    await _migrateIfNeeded();
-    await _loadState();
-    await _checkFirstRun();
-  }
-
-  Future<void> _migrateIfNeeded() async {
-    final prefs = await SharedPreferences.getInstance();
-    final migrated = prefs.getBool('migrated_to_hive') ?? false;
-    if (!migrated) {
-      // migrate points and badges and task completion
-      final migratedPoints = prefs.getInt('points') ?? 0;
-      final migratedBadges = prefs.getStringList('badges') ?? [];
-      await _box.put('points', migratedPoints);
-      await _box.put('badges', migratedBadges);
-      for (var t in tasks) {
-        final key = 'task_${t.id}_completed';
-        final completed = prefs.getBool(key) ?? false;
-        t.completed = completed;
-        await _box.put('task_${t.id}_completed', completed);
-      }
-      await prefs.setBool('migrated_to_hive', true);
-    }
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
   }
 
   Future<void> _checkFirstRun() async {
-    final prefs = await SharedPreferences.getInstance();
-    final firstRun = prefs.getBool('first_run') ?? true;
-    if (firstRun) {
+    _box = Hive.box('appBox');
+    final hasSeenOnboarding = _box.get('seen_onboarding', defaultValue: false) as bool;
+    if (!hasSeenOnboarding) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => OnboardingScreen(onDone: () async {
-          final p = await SharedPreferences.getInstance();
-          await p.setBool('first_run', false);
+          await _box.put('seen_onboarding', true);
           Navigator.of(context).pop();
         })));
       });
@@ -106,6 +90,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   }
 
   Future<void> _loadState() async {
+    _box = Hive.box('appBox');
     setState(() {
       points = _box.get('points', defaultValue: 0) as int;
       final badgeList = (_box.get('badges', defaultValue: []) as List).cast<String>();
@@ -153,13 +138,15 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     if (points >= 20) badges.add('Committed');
     if (points >= 30) badges.add('Habit Hero');
     if (badges.length > before) {
-      // new badge unlocked -> show a simple dialog/celebration
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        showDialog(context: context, builder: (_) => AlertDialog(
-          title: Text('New badge unlocked!'),
-          content: Text('Nice work — you earned a new badge.'),
-          actions: [TextButton(onPressed: () => Navigator.of(context).pop(), child: Text('OK'))],
-        ));
+        showDialog(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: Text(t('new_badge')),
+            content: Text(t('nice_work')),
+            actions: [TextButton(onPressed: () => Navigator.of(context).pop(), child: Text('OK'))],
+          ),
+        );
       });
     }
   }
@@ -257,9 +244,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             Wrap(
               spacing: 8,
               children: [
-                BadgeWidget(title: 'Getting Started', unlocked: badges.contains('Getting Started')),
-                BadgeWidget(title: 'Committed', unlocked: badges.contains('Committed')),
-                BadgeWidget(title: 'Habit Hero', unlocked: badges.contains('Habit Hero')),
+                BadgeWidget(title: 'Getting Started', unlocked: badges.contains('Getting Started'), icon: Icons.star),
+                BadgeWidget(title: 'Committed', unlocked: badges.contains('Committed'), icon: Icons.flag),
+                BadgeWidget(title: 'Habit Hero', unlocked: badges.contains('Habit Hero'), icon: Icons.verified),
               ],
             ),
             SizedBox(height: 12),

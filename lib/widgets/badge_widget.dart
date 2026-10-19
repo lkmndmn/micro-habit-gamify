@@ -3,8 +3,14 @@ import 'package:flutter/material.dart';
 class BadgeWidget extends StatelessWidget {
   final String title;
   final bool unlocked;
+  final IconData icon;
 
-  const BadgeWidget({Key? key, required this.title, this.unlocked = false}) : super(key: key);
+  const BadgeWidget({
+    Key? key,
+    required this.title,
+    this.unlocked = false,
+    this.icon = Icons.emoji_events,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +27,7 @@ class BadgeWidget extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(unlocked ? Icons.emoji_events : Icons.lock, color: unlocked ? Colors.orange : Colors.grey.shade600),
+          Icon(unlocked ? icon : Icons.lock, color: unlocked ? Colors.orange : Colors.grey.shade600),
           SizedBox(width: 8),
           Text(title, style: TextStyle(fontWeight: FontWeight.w600)),
         ],
